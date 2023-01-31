@@ -7,14 +7,12 @@ use GeoService\Models\Attributes\Tag;
 abstract class Model
 {
     protected string $id;
-
     protected string $name;
     protected bool $hasChild;
-
     protected string $place;
     protected string $osm;
-
     protected Tag $tags;
+
     public function __construct($data = [])
     {
         foreach ($data as $key => $value) {

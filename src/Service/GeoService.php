@@ -5,6 +5,7 @@ namespace GeoService\Service;
 use GeoService\Http\Client;
 use GeoService\Models\City;
 use GeoService\Models\Country;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 
 class GeoService
@@ -14,12 +15,13 @@ class GeoService
     }
 
     /**
-     * @return Collection
-     * @throws \Illuminate\Http\Client\RequestException
+     * @param string $id
+     * @return Country
+     * @throws RequestException
      */
-    public function getCountriesWithCities(): Collection
+    public function getCountryWithCities(string $id): Country
     {
-        return $this->countries()->each(function (Country $country) {
+        return tap($this->country($id), function (Country $country) {
             $country->setCities(
                 $this->getChildById($country->getId())
             );
@@ -28,7 +30,7 @@ class GeoService
 
     /**
      * @return Collection
-     * @throws \Illuminate\Http\Client\RequestException
+     * @throws RequestException
      */
     public function countries(): Collection
     {
@@ -39,25 +41,25 @@ class GeoService
     }
 
     /**
-     * @param $id
+     * @param string $id
      * @return Country
-     * @throws \Illuminate\Http\Client\RequestException
+     * @throws RequestException
      */
-    public function country($id): Country
+    public function country(string $id): Country
     {
         $response = $this->client->get("countries/$id")
             ->throw()
-            ->json('items');
+            ->json();
 
         return new Country($response);
     }
 
     /**
-     * @param $id
+     * @param string $id
      * @return Country|City
-     * @throws \Illuminate\Http\Client\RequestException
+     * @throws RequestException
      */
-    public function getById($id): Country|City
+    public function getById(string $id): Country|City
     {
         $response = $this->client->get("nodes/$id")
             ->throw()
@@ -67,11 +69,11 @@ class GeoService
     }
 
     /**
-     * @param $id
+     * @param string $id
      * @return Collection
-     * @throws \Illuminate\Http\Client\RequestException
+     * @throws RequestException
      */
-    public function getChildById($id): Collection
+    public function getChildById(string $id): Collection
     {
         return $this->client->get("nodes/$id/children")
             ->throw()
