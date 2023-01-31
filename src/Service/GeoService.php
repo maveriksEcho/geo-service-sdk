@@ -3,8 +3,8 @@
 namespace GeoService\Service;
 
 use GeoService\Http\Client;
-use GeoService\Models\City;
 use GeoService\Models\Country;
+use GeoService\Models\Model;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Collection;
 
@@ -19,7 +19,7 @@ class GeoService
      * @return Country
      * @throws RequestException
      */
-    public function getCountryWithCities(string $id): Country
+    public function getCountryWithChildren(string $id): Country
     {
         return tap($this->country($id), function (Country $country) {
             $country->setCities(
@@ -56,16 +56,19 @@ class GeoService
 
     /**
      * @param string $id
-     * @return Country|City
+     * @return Model
      * @throws RequestException
      */
-    public function getById(string $id): Country|City
+    public function getById(string $id): Model
     {
-        $response = $this->client->get("nodes/$id")
+        $response = $this->client->get("nodes/$id", [
+            'detail' => true,
+            'tags' => true,
+        ])
             ->throw()
             ->json('item');
 
-        return $response['hasChild'] ? new Country($response) : new City($response);
+        return Model::parse($response);
     }
 
     /**
@@ -78,6 +81,23 @@ class GeoService
         return $this->client->get("nodes/$id/children")
             ->throw()
             ->collect('items');
+    }
+
+    /**
+     * @param string $keyword
+     * @param bool $strict
+     * @param string|null $places
+     * @return Collection
+     */
+    public function search(string $keyword, bool $strict = false, ?string $places = null): Collection
+    {
+        return $this->client->get('node-search', [
+            'query' => $keyword,
+            'query-type' => $strict ? 'city-strict' : 'city-like',
+            'details' => true,
+            'tags' => true,
+            'places' => $places,
+        ])->collect('items')->map(fn($items) => Model::parse($items));
     }
 
     public function ping(): bool

@@ -2,7 +2,9 @@
 
 namespace GeoService\Models;
 
+use GeoService\Models\Attributes\Detail;
 use GeoService\Models\Attributes\Tag;
+use Illuminate\Support\Collection;
 
 abstract class Model
 {
@@ -12,15 +14,33 @@ abstract class Model
     protected string $place;
     protected string $osm;
     protected Tag $tags;
+    protected Collection $details;
 
     public function __construct($data = [])
     {
+        $this->details = new Collection;
         foreach ($data as $key => $value) {
             $method = 'set' . ucfirst($key);
             if (method_exists($this, $method)) {
                 $this->{$method}($value);
             }
         }
+    }
+
+    public static function parse(mixed $response): static
+    {
+        $class = match ($response['place']) {
+            'country' => Country::class,
+            'city' => City::class,
+            'town' => Town::class,
+            'state' => State::class,
+            'district' => District::class,
+            'municipality' => Municipality::class,
+            'village' => Village::class,
+            default => Undefined::class
+        };
+
+        return new $class($response);
     }
 
     /**
@@ -101,5 +121,21 @@ abstract class Model
     public function setPlace(string $place): void
     {
         $this->place = $place;
+    }
+
+    /**
+     * @return Collection
+     */
+    public function getDetails(): Collection
+    {
+        return $this->details;
+    }
+
+    /**
+     * @param array|object $details
+     */
+    public function setDetails(array|object $details): void
+    {
+        $this->details = collect((array)$details)->mapInto(Detail::class);
     }
 }

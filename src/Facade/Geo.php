@@ -9,11 +9,12 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @method static Country getCountryWithCities(string $id)
+ * @method static Country getCountryWithChildren(string $id)
  * @method static Collection countries()
  * @method static Country country(string $id)
  * @method static Country|City getById(string $id)
  * @method static Collection getChildById(string $id)
+ * @method static Collection search(string $keyword, bool $strict, ?string $places = null)
  * @method static bool ping()
  * @method static bool alive()
  */
