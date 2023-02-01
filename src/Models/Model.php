@@ -4,20 +4,26 @@ namespace GeoService\Models;
 
 use GeoService\Models\Attributes\Detail;
 use GeoService\Models\Attributes\Tag;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Collection;
 
-abstract class Model
+abstract class Model implements Arrayable
 {
     protected string $id;
     protected string $name;
     protected bool $hasChild;
-    protected string $place;
+    protected ?string $place;
     protected string $osm;
     protected Tag $tags;
     protected Collection $details;
+    protected Collection $children;
+
+    protected string $locale;
 
     public function __construct($data = [])
     {
+        $this->setLocale(app()->getLocale());
+
         $this->details = new Collection;
         foreach ($data as $key => $value) {
             $method = 'set' . ucfirst($key);
@@ -25,6 +31,24 @@ abstract class Model
                 $this->{$method}($value);
             }
         }
+    }
+
+    public function toArray(): array
+    {
+        return [
+            'geo_id' => $this->getId(),
+            'title' => $this->getTags()->getOfficialName(
+                $this->getLocale(),
+                $this->getName()
+            ),
+            'place' => $this->getPlace(),
+            'children' => $this->getChildren()->each(fn(Model $model) => $model->toArray())
+        ];
+    }
+
+    public function __toArray(): array
+    {
+        return $this->toArray();
     }
 
     public static function parse(mixed $response): static
@@ -36,11 +60,48 @@ abstract class Model
             'state' => State::class,
             'district' => District::class,
             'municipality' => Municipality::class,
+            'borough' => Borough::class,
             'village' => Village::class,
             default => Undefined::class
         };
 
         return new $class($response);
+    }
+
+    public function setName(string $name): void
+    {
+        $this->name = $name;
+    }
+
+    public function getName(): string
+    {
+        return $this->name;
+    }
+
+    /**
+     * @return Collection
+     */
+    public function getChildren(): Collection
+    {
+        return $this->children;
+    }
+
+    public function addChild(Model $child): static
+    {
+        $this->children->push($child);
+
+        return $this;
+    }
+
+    /**
+     * @param Collection $children
+     * @return Model
+     */
+    public function setChildren(Collection $children): static
+    {
+        $this->children = $children;
+
+        return $this;
     }
 
     /**
@@ -108,9 +169,9 @@ abstract class Model
     }
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getPlace(): string
+    public function getPlace(): ?string
     {
         return $this->place;
     }
@@ -137,5 +198,21 @@ abstract class Model
     public function setDetails(array|object $details): void
     {
         $this->details = collect((array)$details)->mapInto(Detail::class);
+    }
+
+    /**
+     * @return string
+     */
+    public function getLocale(): string
+    {
+        return $this->locale;
+    }
+
+    /**
+     * @param string $locale
+     */
+    public function setLocale(string $locale): void
+    {
+        $this->locale = $locale;
     }
 }

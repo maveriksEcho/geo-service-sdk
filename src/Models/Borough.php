@@ -2,7 +2,7 @@
 
 namespace GeoService\Models;
 
-class Country extends Model
+class Borough extends Model
 {
 
 }

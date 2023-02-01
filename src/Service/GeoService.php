@@ -22,7 +22,7 @@ class GeoService
     public function getCountryWithChildren(string $id): Country
     {
         return tap($this->country($id), function (Country $country) {
-            $country->setCities(
+            $country->setChildren(
                 $this->getChildById($country->getId())
             );
         });
@@ -100,11 +100,17 @@ class GeoService
         ])->collect('items')->map(fn($items) => Model::parse($items));
     }
 
+    /**
+     * @return bool
+     */
     public function ping(): bool
     {
         return $this->client->get('ping')->successful();
     }
 
+    /**
+     * @return bool
+     */
     public function alive(): bool
     {
         return $this->client->get('utils/alive')->successful();
